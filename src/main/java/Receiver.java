@@ -8,9 +8,8 @@ import org.gstreamer.Pipeline;
 
 public class Receiver {
 	public static void main(String[] args) {
-		String[] params = { "--gst-debug-level=2", "--gst-debug=adder:4",
-				"--gst-debug-no-color" };
-		Gst.init("Receiver", params);
+		Gst.init("Receiver", new String[] { "--gst-debug-level=2",
+				"--gst-debug=adder:4", "--gst-debug-no-color" });
 
 		final Pipeline pipeline = new Pipeline("pipeline");
 
