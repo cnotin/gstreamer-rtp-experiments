@@ -1,5 +1,6 @@
 package sender;
 
+import org.gstreamer.Closure;
 import org.gstreamer.Element;
 import org.gstreamer.ElementFactory;
 import org.gstreamer.Gst;
@@ -23,14 +24,6 @@ public class Sender {
 
 		Element convert = ElementFactory.make("audioconvert", "convert");
 		Element rtpPayload = ElementFactory.make("rtpL16pay", "rtpPayload");
-		// System.out
-		// .println(rtpPayload
-		// .getSinkPads()
-		// .get(0)
-		// .setCaps(
-		// Caps.fromString("audio/x-raw-int, endianness=(int)1234,"
-		// + " signed=(boolean)true, width=(int)16, depth=(int)16,"
-		// + " rate=(int)44100, channels=(int)1")));
 		Element rtpBin = ElementFactory.make("gstrtpbin", "rtpbin");
 		rtpBin.connect(new Element.PAD_ADDED() {
 			@Override
@@ -39,17 +32,30 @@ public class Sender {
 			}
 		});
 		rtpBin.getRequestPad("send_rtp_sink_0");
+		rtpBin.connect("on-ssrc-validated", new Closure() {
+			@SuppressWarnings("unused")
+			public void invoke() {
+				System.out.println("lol");
+			}
+		});
 
-		Element sink = ElementFactory.make("udpsink", "sink");
-		sink.set("port", 5002);
+		Element rtpsink = ElementFactory.make("udpsink", "rtpsink");
+		rtpsink.set("port", 5002);
+		Element rtcpsink = ElementFactory.make("udpsink", "rtcpsink");
+		rtcpsink.set("port", 5003);
+		rtcpsink.set("async", false);
+		rtcpsink.set("sync", false);
 
-		pipeline.addMany(source, convert, rtpPayload, rtpBin, sink);
+		pipeline.addMany(source, convert, rtpPayload, rtpBin, rtpsink, rtcpsink);
 		System.out.println(Element.linkMany(source, convert, rtpPayload));
 
-		System.out.println(Element.linkPads(rtpPayload, "src", rtpBin,
+		System.out.println(Element.linkPads(rtpPayload, null, rtpBin,
 				"send_rtp_sink_0"));
-		System.out.println(Element.linkPads(rtpBin, "send_rtp_src_0", sink,
+		System.out.println(Element.linkPads(rtpBin, "send_rtp_src_0", rtpsink,
 				"sink"));
+
+		System.out.println(Element.linkPads(rtpBin, "send_rtcp_src_0",
+				rtcpsink, null));
 
 		pipeline.play();
 
