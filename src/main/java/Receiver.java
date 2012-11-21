@@ -1,5 +1,3 @@
-
-
 import org.gstreamer.Caps;
 import org.gstreamer.Closure;
 import org.gstreamer.Element;
@@ -10,7 +8,8 @@ import org.gstreamer.Pipeline;
 
 public class Receiver {
 	public static void main(String[] args) {
-		String[] params = { "--gst-debug=3", "--gst-debug-no-color" };
+		String[] params = { "--gst-debug-level=2", "--gst-debug=adder:4",
+				"--gst-debug-no-color" };
 		Gst.init("Receiver", params);
 
 		final Pipeline pipeline = new Pipeline("pipeline");
@@ -47,16 +46,46 @@ public class Receiver {
 					final Element convert = ElementFactory.make("audioconvert",
 							null);
 					pipeline.add(rtpDepayload);
+					rtpDepayload.syncStateWithParent();
 					pipeline.add(convert);
+					convert.syncStateWithParent();
 
 					System.out.println("bin-payload "
 							+ Element.linkPads(rtpBin, pad.getName(),
 									rtpDepayload, null));
-					System.out.println("depayload-convert-adder "
-							+ Element.linkMany(rtpDepayload, convert, adder));
+					Pad adderPad = adder.getRequestPad("sink%d");
+					System.out.println("depayload-convert "
+							+ Element.linkMany(rtpDepayload, convert));
+					System.out.println("convert-adder "
+							+ convert.getStaticPad("src").link(adderPad));
 				}
 			}
 		});
+		rtpBin.connect(new Element.PAD_REMOVED() {
+			@Override
+			public void padRemoved(Element element, Pad pad) {
+				System.out.println("bye bye");
+			}
+		});
+		rtpBin.connect("on-bye-timeout", new Closure() {
+			@SuppressWarnings("unused")
+			public void invoke() {
+				System.out.println("on-bye-timeout");
+			}
+		});
+		rtpBin.connect("on-timeout", new Closure() {
+			@SuppressWarnings("unused")
+			public void invoke() {
+				System.out.println("on-timeout");
+			}
+		});
+		rtpBin.connect("on-bye-ssrc", new Closure() {
+			@SuppressWarnings("unused")
+			public void invoke() {
+				System.out.println("on-bye-ssrc");
+			}
+		});
+		rtpBin.set("autoremove", true);
 		rtpBin.getRequestPad("recv_rtp_sink_0");
 		rtpBin.getRequestPad("recv_rtcp_sink_0");
 		rtpBin.connect("on-new-ssrc", new Closure() {

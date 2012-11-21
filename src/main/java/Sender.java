@@ -1,5 +1,3 @@
-
-
 import org.gstreamer.Bin;
 import org.gstreamer.Closure;
 import org.gstreamer.Element;
