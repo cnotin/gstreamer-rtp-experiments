@@ -1,5 +1,6 @@
 package sender;
 
+import org.gstreamer.Bin;
 import org.gstreamer.Closure;
 import org.gstreamer.Element;
 import org.gstreamer.ElementFactory;
@@ -24,7 +25,7 @@ public class Sender {
 
 		Element convert = ElementFactory.make("audioconvert", "convert");
 		Element rtpPayload = ElementFactory.make("rtpL16pay", "rtpPayload");
-		Element rtpBin = ElementFactory.make("gstrtpbin", "rtpbin");
+		Bin rtpBin = (Bin) ElementFactory.make("gstrtpbin", "rtpbin");
 		rtpBin.connect(new Element.PAD_ADDED() {
 			@Override
 			public void padAdded(Element element, Pad pad) {
@@ -38,6 +39,9 @@ public class Sender {
 				System.out.println("lol");
 			}
 		});
+		System.out.println("Caps (check out SSRC) "
+				+ rtpBin.getElementByName("rtpsession0").getSinkPads().get(0)
+						.getCaps());
 
 		Element rtpsink = ElementFactory.make("udpsink", "rtpsink");
 		rtpsink.set("port", 5002);
@@ -58,6 +62,8 @@ public class Sender {
 				rtcpsink, null));
 
 		pipeline.play();
+
+		System.out.println(rtpBin.getSrcPads().get(1).getCaps());
 
 		System.out.println("Src caps = "
 				+ source.getSrcPads().get(0).getNegotiatedCaps());

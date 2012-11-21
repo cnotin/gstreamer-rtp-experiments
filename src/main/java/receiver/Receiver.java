@@ -10,10 +10,10 @@ import org.gstreamer.Pipeline;
 
 public class Receiver {
 	public static void main(String[] args) {
-		String[] params = { "--gst-debug=2", "--gst-debug-no-color" };
+		String[] params = { "--gst-debug=3", "--gst-debug-no-color" };
 		Gst.init("Receiver", params);
 
-		Pipeline pipeline = new Pipeline("pipeline");
+		final Pipeline pipeline = new Pipeline("pipeline");
 
 		Element rtpSource = ElementFactory.make("udpsrc", "rtpSource");
 		rtpSource.set("port", 5002);
@@ -32,19 +32,28 @@ public class Receiver {
 		Element rtcpSource = ElementFactory.make("udpsrc", "rtcpSource");
 		rtcpSource.set("port", 5003);
 
-		Element convert = ElementFactory.make("audioconvert", "convert");
-		final Element rtpDepayload = ElementFactory.make("rtpL16depay",
-				"rtpDepayload");
+		final Element adder = ElementFactory.make("adder", "adder");
+
 		final Element rtpBin = ElementFactory.make("gstrtpbin", "rtpbin");
 		rtpBin.connect(new Element.PAD_ADDED() {
 			@Override
 			public void padAdded(Element element, Pad pad) {
 				System.out.println("Pad added: " + pad);
 				if (pad.getName().startsWith("recv_rtp_src")) {
-					System.out.println("Got new sound input pad: " + pad);
+					System.out.println("\nGot new sound input pad: " + pad);
+
+					final Element rtpDepayload = ElementFactory.make(
+							"rtpL16depay", null);
+					final Element convert = ElementFactory.make("audioconvert",
+							null);
+					pipeline.add(rtpDepayload);
+					pipeline.add(convert);
+
 					System.out.println("bin-payload "
 							+ Element.linkPads(rtpBin, pad.getName(),
 									rtpDepayload, null));
+					System.out.println("depayload-convert-adder "
+							+ Element.linkMany(rtpDepayload, convert, adder));
 				}
 			}
 		});
@@ -53,17 +62,17 @@ public class Receiver {
 		rtpBin.connect("on-new-ssrc", new Closure() {
 			@SuppressWarnings("unused")
 			public void invoke(Element element, int session, int ssrc) {
-				System.out.println("New SSRC " + String.format("%X", ssrc));
+				System.out.println("New SSRC (uint)" + ssrc + "/"
+						+ String.format("%X", ssrc));
 			}
 		});
 
 		Element sink = ElementFactory.make("autoaudiosink", "sink");
 
-		pipeline.addMany(rtpSource, rtcpSource, rtpBin, rtpDepayload, convert,
-				sink);
+		pipeline.addMany(rtpSource, rtcpSource, rtpBin, adder, sink);
 
-		System.out.println("big "
-				+ Element.linkMany(rtpDepayload, convert, sink));
+		System.out.println("final elts of stream "
+				+ Element.linkMany(adder, sink));
 
 		System.out.println("rtp "
 				+ Element.linkPads(rtpSource, null, rtpBin, "recv_rtp_sink_0"));
