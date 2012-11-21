@@ -1,4 +1,4 @@
-package receiver;
+
 
 import org.gstreamer.Caps;
 import org.gstreamer.Closure;

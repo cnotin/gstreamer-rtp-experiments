@@ -1,4 +1,4 @@
-package sender;
+
 
 import org.gstreamer.Bin;
 import org.gstreamer.Closure;
