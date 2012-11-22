@@ -15,29 +15,26 @@ public class Receiver {
 
 		Element rtpSource = ElementFactory.make("udpsrc", "rtpSource");
 		rtpSource.set("port", 5002);
-		System.out.println("caps "
-				+ rtpSource
-						.getSrcPads()
-						.get(0)
-						.setCaps(
-								Caps.fromString("application/x-rtp, "
-										+ "media=(string)audio, "
-										+ "clock-rate=(int)44100, "
-										+ "encoding-name=(string)L16, "
-										+ "encoding-params=(string)1, "
-										+ "channels=(int)1, "
-										+ "payload=(int)96")));
+		rtpSource.set("do-timestamp", true);
+		rtpSource.set("caps", Caps
+				.fromString("application/x-rtp, media=(string)audio, "
+						+ "clock-rate=(int)44100, encoding-name=(string)L16, "
+						+ "encoding-params=(string)1, channels=(int)1, "
+						+ "payload=(int)96"));
+
 		Element rtcpSource = ElementFactory.make("udpsrc", "rtcpSource");
 		rtcpSource.set("port", 5003);
 
-		final Element adder = ElementFactory.make("adder", "adder");
-		adder.set("caps", Caps.fromString("audio/x-raw, "
-				+ "format=(string)S16LE, rate=(int)44100, "
-				+ "channels=(int)1, layout=(string)interleaved"));
-		System.out.println("adder caps " + adder.get("caps"));
+		final Element adder = ElementFactory.make("liveadder", "adder");
+		adder.set("latency", 20);
+		// adder.set("caps", Caps.fromString("audio/x-raw, "
+		// + "format=(string)S16LE, rate=(int)44100, "
+		// + "channels=(int)1, layout=(string)interleaved"));
+		// System.out.println("adder caps " + adder.get("caps"));
 
 		final Element rtpBin = ElementFactory.make("gstrtpbin", "rtpbin");
-		rtpBin.set("buffer-mode", 0);
+		rtpBin.set("latency", 2);
+		rtpBin.set("autoremove", true);
 		rtpBin.connect(new Element.PAD_ADDED() {
 			@Override
 			public void padAdded(Element element, Pad pad) {
@@ -60,11 +57,15 @@ public class Receiver {
 
 					Pad adderPad = adder.getRequestPad("sink%d");
 
-					System.out.println("depayload-convert "
-							+ Element.linkMany(rtpDepayload, convert));
-					System.out.println(convert + "-" + adderPad + " "
-							+ convert.getStaticPad("src").link(adderPad)
-							+ convert.getSrcPads().get(0).getCaps() + " -- "
+					final Element queue = ElementFactory.make("queue", null);
+					queue.set("max-size-buffers", 1500);
+					pipeline.add(queue);
+					System.out.println("depayload-convert-queue "
+							+ Element.linkMany(rtpDepayload, convert, queue));
+
+					System.out.println(queue + " - " + adderPad + " "
+							+ queue.getStaticPad("src").link(adderPad) + " "
+							+ queue.getSrcPads().get(0).getCaps() + " -- "
 							+ adderPad.getCaps());
 				}
 			}
@@ -93,9 +94,6 @@ public class Receiver {
 				System.out.println("on-bye-ssrc");
 			}
 		});
-		rtpBin.set("autoremove", true);
-		rtpBin.set("use-pipeline-clock", true);
-		rtpBin.set("ntp-sync", true);
 		rtpBin.getRequestPad("recv_rtp_sink_0");
 		rtpBin.getRequestPad("recv_rtcp_sink_0");
 		rtpBin.connect("on-new-ssrc", new Closure() {
@@ -103,6 +101,7 @@ public class Receiver {
 			public void invoke(Element element, int session, int ssrc) {
 				System.out.println("New SSRC (uint)" + ssrc + "/"
 						+ String.format("%X", ssrc));
+				pipeline.play();
 			}
 		});
 
