@@ -31,8 +31,13 @@ public class Receiver {
 		rtcpSource.set("port", 5003);
 
 		final Element adder = ElementFactory.make("adder", "adder");
+		adder.set("caps", Caps.fromString("audio/x-raw, "
+				+ "format=(string)S16LE, rate=(int)44100, "
+				+ "channels=(int)1, layout=(string)interleaved"));
+		System.out.println("adder caps " + adder.get("caps"));
 
 		final Element rtpBin = ElementFactory.make("gstrtpbin", "rtpbin");
+		rtpBin.set("buffer-mode", 0);
 		rtpBin.connect(new Element.PAD_ADDED() {
 			@Override
 			public void padAdded(Element element, Pad pad) {
@@ -52,11 +57,15 @@ public class Receiver {
 					System.out.println("bin-payload "
 							+ Element.linkPads(rtpBin, pad.getName(),
 									rtpDepayload, null));
+
 					Pad adderPad = adder.getRequestPad("sink%d");
+
 					System.out.println("depayload-convert "
 							+ Element.linkMany(rtpDepayload, convert));
-					System.out.println("convert-adder "
-							+ convert.getStaticPad("src").link(adderPad));
+					System.out.println(convert + "-" + adderPad + " "
+							+ convert.getStaticPad("src").link(adderPad)
+							+ convert.getSrcPads().get(0).getCaps() + " -- "
+							+ adderPad.getCaps());
 				}
 			}
 		});
@@ -85,6 +94,8 @@ public class Receiver {
 			}
 		});
 		rtpBin.set("autoremove", true);
+		rtpBin.set("use-pipeline-clock", true);
+		rtpBin.set("ntp-sync", true);
 		rtpBin.getRequestPad("recv_rtp_sink_0");
 		rtpBin.getRequestPad("recv_rtcp_sink_0");
 		rtpBin.connect("on-new-ssrc", new Closure() {
@@ -111,6 +122,11 @@ public class Receiver {
 
 		pipeline.play();
 
-		Gst.main();
+		System.out.println("Reactivate ?");
+		new java.util.Scanner(System.in).nextLine();
+		pipeline.play();
+		System.out.println("Bye ?");
+		new java.util.Scanner(System.in).nextLine();
+		System.out.println("Bye");
 	}
 }

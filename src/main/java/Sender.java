@@ -20,6 +20,7 @@ public class Sender {
 
 		Element source = ElementFactory.make("audiotestsrc", "source");
 		source.set("freq", new Long(args[0]));
+		source.set("is-live", true);
 
 		Element convert = ElementFactory.make("audioconvert", "convert");
 		Element rtpPayload = ElementFactory.make("rtpL16pay", "rtpPayload");
@@ -30,6 +31,8 @@ public class Sender {
 				System.out.println("Pad added: " + pad);
 			}
 		});
+		rtpBin.set("use-pipeline-clock", true);
+		rtpBin.set("ntp-sync", true);
 		rtpBin.getRequestPad("send_rtp_sink_0");
 		rtpBin.connect("on-ssrc-validated", new Closure() {
 			@SuppressWarnings("unused")
