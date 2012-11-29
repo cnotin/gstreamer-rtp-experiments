@@ -62,11 +62,8 @@ public class Receiver {
 									PadLinkReturn.OK));
 
 					Pad adderPad = adder.getRequestPad("sink%d");
-					successOrDie(
-							"decoder-adder",
-							decoder.getStaticPad("src")
-									.link(adderPad)
-									.equals(PadLinkReturn.OK));
+					successOrDie("decoder-adder", decoder.getStaticPad("src")
+							.link(adderPad).equals(PadLinkReturn.OK));
 					inspect(pipeline);
 				}
 			}
@@ -79,8 +76,8 @@ public class Receiver {
 		Pad pad = rtpBin.getRequestPad("recv_rtp_sink_0");
 		successOrDie("udpSource-rtpbin", udpSource.getStaticPad("src")
 				.link(pad).equals(PadLinkReturn.OK));
-		
-		successOrDie("adder-sink",Element.linkMany(adder, sink));
+
+		successOrDie("adder-sink", Element.linkMany(adder, sink));
 		// ################## ROCK'n'ROLL #############################
 
 		inspect(pipeline);
