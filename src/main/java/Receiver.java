@@ -35,6 +35,7 @@ public class Receiver {
 				System.err.println("LOL");
 			}
 		});
+		final Element adder = ElementFactory.make("liveadder", null);
 		final Element sink = ElementFactory.make("autoaudiosink", null);
 
 		// ####################### CONNECT EVENTS ######################"
@@ -60,10 +61,11 @@ public class Receiver {
 							pad.link(decoder.getStaticPad("sink")).equals(
 									PadLinkReturn.OK));
 
+					Pad adderPad = adder.getRequestPad("sink%d");
 					successOrDie(
-							"decoder-sink",
+							"decoder-adder",
 							decoder.getStaticPad("src")
-									.link(sink.getStaticPad("sink"))
+									.link(adderPad)
 									.equals(PadLinkReturn.OK));
 					inspect(pipeline);
 				}
@@ -71,13 +73,14 @@ public class Receiver {
 		});
 
 		// ############## ADD THEM TO PIPELINE ####################
-		pipeline.addMany(udpSource, rtpBin, sink);
+		pipeline.addMany(udpSource, rtpBin, adder, sink);
 
 		// ###################### LINK THEM ##########################
 		Pad pad = rtpBin.getRequestPad("recv_rtp_sink_0");
 		successOrDie("udpSource-rtpbin", udpSource.getStaticPad("src")
 				.link(pad).equals(PadLinkReturn.OK));
-
+		
+		successOrDie("adder-sink",Element.linkMany(adder, sink));
 		// ################## ROCK'n'ROLL #############################
 
 		inspect(pipeline);
