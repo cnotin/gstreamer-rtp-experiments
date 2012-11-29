@@ -10,8 +10,7 @@ import org.gstreamer.Pipeline;
 public class Receiver {
 	public static void main(String[] args) {
 		Gst.init("Receiver", new String[] { "--gst-debug-level=2",
-				"--gst-debug=liveadder:4", "--gst-debug=basesrc:2",
-				"--gst-debug-no-color" });
+				"--gst-debug-no-color", "--gst-debug=liveadder:4" });
 
 		// ################# CREATE AND CONFIGURE ELEMENTS ##################
 		final Pipeline pipeline = new Pipeline("pipeline");
@@ -80,9 +79,6 @@ public class Receiver {
 		successOrDie("adder-sink", Element.linkMany(adder, sink));
 		// ################## ROCK'n'ROLL #############################
 
-		inspect(pipeline);
-		System.out.println("Play ?");
-		new java.util.Scanner(System.in).nextLine();
 		pipeline.play();
 
 		inspect(pipeline);
