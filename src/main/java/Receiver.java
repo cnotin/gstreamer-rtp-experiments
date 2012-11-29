@@ -1,4 +1,5 @@
 import org.gstreamer.Caps;
+import org.gstreamer.Closure;
 import org.gstreamer.Element;
 import org.gstreamer.ElementFactory;
 import org.gstreamer.Gst;
@@ -9,7 +10,7 @@ import org.gstreamer.Pipeline;
 public class Receiver {
 	public static void main(String[] args) {
 		Gst.init("Receiver", new String[] { "--gst-debug-level=2",
-				"--gst-debug=liveadder:4", "--gst-debug=basesrc:4",
+				"--gst-debug=liveadder:4", "--gst-debug=basesrc:2",
 				"--gst-debug-no-color" });
 
 		// ################# CREATE AND CONFIGURE ELEMENTS ##################
@@ -28,59 +29,78 @@ public class Receiver {
 										+ "encoding-name=PCMU")));
 
 		final Element rtpBin = ElementFactory.make("gstrtpbin", null);
-		final Element sinkQueue = ElementFactory.make("queue", null);
+		rtpBin.connect("request-pt-map", new Closure() {
+			@SuppressWarnings("unused")
+			public void invoke() {
+				System.err.println("LOL");
+			}
+		});
 		final Element sink = ElementFactory.make("autoaudiosink", null);
 
+		// ####################### CONNECT EVENTS ######################"
 		rtpBin.connect(new Element.PAD_ADDED() {
 			@Override
 			public void padAdded(Element element, Pad pad) {
 				System.out.println("Pad added: " + pad);
 				if (pad.getName().startsWith("recv_rtp_src")) {
-					Element fake = ElementFactory.make("fdsink", null);
-					pipeline.add(fake);
-					pad.link(fake.getStaticPad("sink"));
+					System.out.println("\nGot new sound input pad: " + pad);
 
-					// System.out.println("\nGot new sound input pad: " + pad);
-					//
-					// // create elements
-					// DecodeBin decoder = new DecodeBin();
-					//
-					// // add them
-					// pipeline.add(decoder);
-					//
-					// // sync them
-					// decoder.syncStateWithParent();
-					//
-					// // link them
-					// successOrDie(
-					// "bin-decoder",
-					// pad.link(decoder.getStaticPad("sink")).equals(
-					// PadLinkReturn.OK));
-					//
-					// successOrDie(
-					// "decoder-sinkqueue",
-					// decoder.getStaticPad("src")
-					// .link(sinkQueue.getStaticPad("sink"))
-					// .equals(PadLinkReturn.OK));
+					// create elements
+					RtpMulawDecodeBin decoder = new RtpMulawDecodeBin();
+
+					// add them
+					pipeline.add(decoder);
+
+					// sync them
+					decoder.syncStateWithParent();
+
+					// link them
+					successOrDie(
+							"bin-decoder",
+							pad.link(decoder.getStaticPad("sink")).equals(
+									PadLinkReturn.OK));
+
+					successOrDie(
+							"decoder-sink",
+							decoder.getStaticPad("src")
+									.link(sink.getStaticPad("sink"))
+									.equals(PadLinkReturn.OK));
+					inspect(pipeline);
 				}
 			}
 		});
 
 		// ############## ADD THEM TO PIPELINE ####################
-		pipeline.addMany(udpSource, rtpBin, sinkQueue, sink);
+		pipeline.addMany(udpSource, rtpBin, sink);
 
 		// ###################### LINK THEM ##########################
 		Pad pad = rtpBin.getRequestPad("recv_rtp_sink_0");
 		successOrDie("udpSource-rtpbin", udpSource.getStaticPad("src")
 				.link(pad).equals(PadLinkReturn.OK));
 
-		successOrDie("adder-queue-sink ", Element.linkMany(sinkQueue, sink));
 		// ################## ROCK'n'ROLL #############################
-		pipeline.play();
 
-		System.out.println("Reactivate ?");
+		inspect(pipeline);
+		System.out.println("Play ?");
 		new java.util.Scanner(System.in).nextLine();
 		pipeline.play();
+
+		inspect(pipeline);
+		System.out.println("Stop ?");
+		new java.util.Scanner(System.in).nextLine();
+		pipeline.stop();
+
+		inspect(pipeline);
+		System.out.println("Play ?");
+		new java.util.Scanner(System.in).nextLine();
+		pipeline.play();
+
+		inspect(pipeline);
+		System.out.println("Stop ?");
+		new java.util.Scanner(System.in).nextLine();
+		pipeline.stop();
+
+		inspect(pipeline);
 		System.out.println("Bye ?");
 		new java.util.Scanner(System.in).nextLine();
 		System.out.println("Bye");
@@ -91,5 +111,37 @@ public class Receiver {
 			System.err.println("Die because of " + message);
 			System.exit(-1);
 		}
+	}
+
+	private static void inspect(Pipeline pipe) {
+		for (Element elt : pipe.getElements()) {
+			System.out.println(elt.getName());
+			for (Pad pad : elt.getSinkPads()) {
+				if (pad.getPeer() == null) {
+					System.out.println("\tSink pad: " + pad.getName()
+							+ " DISCONNECTED");
+				} else {
+					System.out
+							.println("\tSink pad: " + pad.getName()
+									+ " connected to peer parent="
+									+ pad.getPeer().getParent() + " / "
+									+ pad.getPeer());
+				}
+			}
+			for (Pad pad : elt.getSrcPads()) {
+				if (pad.getPeer() == null) {
+					System.out.println("\tSink pad: " + pad.getName()
+							+ " DISCONNECTED");
+				} else {
+					System.out
+							.println("\tSrc pad: " + pad.getName()
+									+ " connected to peer parent="
+									+ pad.getPeer().getParent() + " / "
+									+ pad.getPeer());
+				}
+			}
+		}
+
+		pipe.debugToDotFile(Pipeline.DEBUG_GRAPH_SHOW_ALL, "test");
 	}
 }
