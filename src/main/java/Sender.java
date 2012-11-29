@@ -44,9 +44,11 @@ public class Sender {
 						.getCaps());
 
 		Element rtpsink = ElementFactory.make("udpsink", "rtpsink");
-		rtpsink.set("port", 5002);
+		rtpsink.set("port", 5000);
+		rtpsink.set("host", "224.1.42.1");
+
 		Element rtcpsink = ElementFactory.make("udpsink", "rtcpsink");
-		rtcpsink.set("port", 5003);
+		rtcpsink.set("port", 5001);
 
 		pipeline.addMany(source, convert, rtpPayload, encoder, rtpBin, rtpsink,
 				rtcpsink);
