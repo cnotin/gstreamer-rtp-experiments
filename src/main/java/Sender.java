@@ -25,7 +25,6 @@ public class Sender {
 		Element convert = ElementFactory.make("audioconvert", "convert");
 		Element rtpPayload = ElementFactory.make("rtppcmupay", "rtpPayload");
 		Element encoder = ElementFactory.make("mulawenc", "mulawenc");
-		// Element pcmu = ElementFactory.make("rtppcmupay", "rtppcmupay");
 		Bin rtpBin = (Bin) ElementFactory.make("gstrtpbin", "rtpbin");
 		rtpBin.connect(new Element.PAD_ADDED() {
 			@Override
@@ -53,11 +52,10 @@ public class Sender {
 		rtcpsink.set("async", false);
 		rtcpsink.set("sync", false);
 
-		pipeline.addMany(source, convert, rtpPayload, encoder// , pcmu
-				, rtpBin, rtpsink, rtcpsink);
+		pipeline.addMany(source, convert, rtpPayload, encoder, rtpBin, rtpsink,
+				rtcpsink);
 		System.out.println("link "
-				+ Element.linkMany(source, convert, encoder, rtpPayload// , pcmu
-						));
+				+ Element.linkMany(source, convert, encoder, rtpPayload));
 
 		System.out.println(Element.linkPads(rtpPayload, null, rtpBin,
 				"send_rtp_sink_0"));

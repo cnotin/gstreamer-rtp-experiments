@@ -1,3 +1,5 @@
+import lombok.AllArgsConstructor;
+
 import org.gstreamer.Bin;
 import org.gstreamer.Element;
 import org.gstreamer.ElementFactory;
@@ -28,23 +30,30 @@ public class RtpMulawDecodeBin extends Bin {
 		this.addPad(sink);
 		this.addPad(src);
 
-		this.sink.connect(new OnPadUnlinked());
-		this.sink.connect(new OnPadLinked());
+		this.sink.connect(new OnPadUnlinked(this));
 	}
 
-	private class OnPadUnlinked implements Pad.UNLINKED {
+	/**
+	 * Called to cleanly remove this Bin from its parent. Assumption: it was
+	 * connected to downstream through a request pad (that will also be cleanly
+	 * released)
+	 */
+	public void getOut() {
+		// clean request pad from adder
+		Pad downstreamPeer = src.getPeer();
+		downstreamPeer.getParentElement().releaseRequestPad(downstreamPeer);
+
+		System.out.println("Remove from parent bin "
+				+ ((Bin) this.getParent()).remove(this));
+	}
+
+	@AllArgsConstructor
+	private class OnPadUnlinked implements GhostPad.UNLINKED {
+		RtpMulawDecodeBin parentBin;
+
 		@Override
 		public void unlinked(Pad complainer, Pad gonePad) {
-			System.err.println("I, " + complainer + ", have lost my dear pad "
-					+ gonePad + " :(");
-		}
-	}
-
-	private class OnPadLinked implements Pad.LINKED {
-		@Override
-		public void linked(Pad greeter, Pad newPad) {
-			System.err.println("I, " + greeter + ", have a new friend "
-					+ newPad + " :)");
+			parentBin.getOut();
 		}
 	}
 }

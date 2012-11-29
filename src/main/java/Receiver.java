@@ -80,9 +80,6 @@ public class Receiver {
 		successOrDie("adder-sink", Element.linkMany(adder, sink));
 		// ################## ROCK'n'ROLL #############################
 
-		inspect(pipeline);
-		System.out.println("Play ?");
-		new java.util.Scanner(System.in).nextLine();
 		pipeline.play();
 
 		inspect(pipeline);
