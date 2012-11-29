@@ -13,7 +13,7 @@ public class Sender {
 			System.exit(-1);
 		}
 
-		String[] params = { "--gst-debug=2", "--gst-debug-no-color" };
+		String[] params = { "--gst-debug=3", "--gst-debug-no-color" };
 		Gst.init("Sender", params);
 
 		Pipeline pipeline = new Pipeline("pipeline");
@@ -23,7 +23,9 @@ public class Sender {
 		source.set("is-live", true);
 
 		Element convert = ElementFactory.make("audioconvert", "convert");
-		Element rtpPayload = ElementFactory.make("rtpL16pay", "rtpPayload");
+		Element rtpPayload = ElementFactory.make("rtppcmupay", "rtpPayload");
+		Element encoder = ElementFactory.make("mulawenc", "mulawenc");
+		// Element pcmu = ElementFactory.make("rtppcmupay", "rtppcmupay");
 		Bin rtpBin = (Bin) ElementFactory.make("gstrtpbin", "rtpbin");
 		rtpBin.connect(new Element.PAD_ADDED() {
 			@Override
@@ -51,8 +53,11 @@ public class Sender {
 		rtcpsink.set("async", false);
 		rtcpsink.set("sync", false);
 
-		pipeline.addMany(source, convert, rtpPayload, rtpBin, rtpsink, rtcpsink);
-		System.out.println(Element.linkMany(source, convert, rtpPayload));
+		pipeline.addMany(source, convert, rtpPayload, encoder// , pcmu
+				, rtpBin, rtpsink, rtcpsink);
+		System.out.println("link "
+				+ Element.linkMany(source, convert, encoder, rtpPayload// , pcmu
+						));
 
 		System.out.println(Element.linkPads(rtpPayload, null, rtpBin,
 				"send_rtp_sink_0"));
