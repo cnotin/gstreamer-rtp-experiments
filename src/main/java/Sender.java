@@ -32,8 +32,6 @@ public class Sender {
 				System.out.println("Pad added: " + pad);
 			}
 		});
-		rtpBin.set("use-pipeline-clock", true);
-		rtpBin.set("ntp-sync", true);
 		rtpBin.getRequestPad("send_rtp_sink_0");
 		rtpBin.connect("on-ssrc-validated", new Closure() {
 			@SuppressWarnings("unused")
@@ -49,8 +47,6 @@ public class Sender {
 		rtpsink.set("port", 5002);
 		Element rtcpsink = ElementFactory.make("udpsink", "rtcpsink");
 		rtcpsink.set("port", 5003);
-		rtcpsink.set("async", false);
-		rtcpsink.set("sync", false);
 
 		pipeline.addMany(source, convert, rtpPayload, encoder, rtpBin, rtpsink,
 				rtcpsink);
