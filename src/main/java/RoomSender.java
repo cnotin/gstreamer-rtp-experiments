@@ -6,20 +6,21 @@ import org.gstreamer.ElementFactory;
 import org.gstreamer.GhostPad;
 import org.gstreamer.Pad;
 import org.gstreamer.PadLinkReturn;
+import org.gstreamer.elements.good.RTPBin;
 
 public class RoomSender extends Bin {
 	private final Pad sink;
 	@Getter
 	private final RtpMulawEncodeBin encoder;
 	private final Element udpSink;
-	private final Element rtpBin;
+	private final RTPBin rtpBin;
 
 	public RoomSender(String name, String ip, int port) {
 		super(name);
 
 		encoder = new RtpMulawEncodeBin();
 		encoder.syncStateWithParent();
-		rtpBin = ElementFactory.make("gstrtpbin", null);
+		rtpBin = new RTPBin((String) null);
 		Pad rtpSink0 = rtpBin.getRequestPad("send_rtp_sink_0");
 
 		udpSink = ElementFactory.make("udpsink", null);
@@ -42,5 +43,13 @@ public class RoomSender extends Bin {
 				+ rtpBin.getStaticPad("send_rtp_src_0")
 						.link(udpSink.getStaticPad("sink"))
 						.equals(PadLinkReturn.OK));
+
+		// how to find SSRC (pretty dirty)
+		String caps = rtpBin.getElementByName("rtpsession0").getSinkPads()
+				.get(0).getCaps().toString();
+		System.out.println(caps);
+		int ssrcBegin = caps.indexOf("ssrc=(uint)") + 11;
+		int ssrcEnd = caps.indexOf(";", ssrcBegin);
+		System.out.println(caps.substring(ssrcBegin, ssrcEnd));
 	}
 }

@@ -17,7 +17,7 @@ public class Receiver {
 		final Pipeline pipeline = new Pipeline("pipeline");
 
 		final Element udpSource = ElementFactory.make("udpsrc", null);
-		udpSource.set("multicast-group", "224.1.42.1");
+		udpSource.set("multicast-group", "224.1.42.10");
 		udpSource.set("port", 5000);
 		udpSource.set("auto-multicast", true);
 		successOrDie(

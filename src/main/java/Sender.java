@@ -10,7 +10,7 @@ public class Sender {
 			System.exit(-1);
 		}
 
-		String[] params = { "--gst-debug=3", "--gst-debug-no-color" };
+		String[] params = { "--gst-debug=2", "--gst-debug-no-color" };
 		Gst.init("Sender", params);
 
 		Pipeline pipeline = new Pipeline("pipeline");
